@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Crypto Prices</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f0f23;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #1a1a2e;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+    h1 {
+      text-align: center;
+      color: #00d4ff;
+      margin-bottom: 20px;
+    }
+    .price-card {
+      background: #16213e;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: transform 0.2s;
+    }
+    .price-card:hover {
+      transform: translateY(-3px);
+    }
+    .symbol {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #00ff85;
+    }
+    .price {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #ffd700;
+    }
+    .change {
+      font-size: 1.1rem;
+      padding: 5px 10px;
+      border-radius: 6px;
+    }
+    .positive { background: #1e4d2b; color: #a0f7a0; }
+    .negative { background: #5d1f1f; color: #f7a0a0; }
+    .timestamp {
+      font-size: 0.8rem;
+      color: #888;
+      text-align: right;
+      margin-top: 10px;
+    }
+    .status {
+      text-align: center;
+      padding: 10px;
+      font-weight: bold;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    .connected { background: #1e4d2b; color: #a0f7a0; }
+    .disconnected { background: #5d1f1f; color: #f7a0a0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Live Crypto Prices (WebSocket)</h1>
+    <div id="status" class="status disconnected">Connecting...</div>
+    <div id="prices"></div>
+  </div>
+
+  <script>
+    const wsUrl = "ws://localhost:8000/ws";  // Change to your deployed URL later
+    const statusEl = document.getElementById("status");
+    const pricesEl = document.getElementById("prices");
+
+    let ws;
+
+    function connect() {
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        statusEl.textContent = "Connected! Receiving live prices...";
+        statusEl.className = "status connected";
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        updatePrices(data);
+      };
+
+      ws.onclose = () => {
+        statusEl.textContent = "Disconnected. Reconnecting in 3s...";
+        statusEl.className = "status disconnected";
+        setTimeout(connect, 3000);
+      };
+
+      ws.onerror = (err) => {
+        console.error("WebSocket error:", err);
+        statusEl.textContent = "Connection error!";
+        statusEl.className = "status disconnected";
+      };
+    }
+
+    function updatePrices(prices) {
+      pricesEl.innerHTML = "";
+      Object.keys(prices).sort().forEach(symbol => {
+        const info = prices[symbol];
+        const change = parseFloat(info.change);
+        const changeClass = change >= 0 ? "positive" : "negative";
+        const changeText = change >= 0 ? `+${change}%` : `${change}%`;
+
+        const card = document.createElement("div");
+        card.className = "price-card";
+        card.innerHTML = `
+          <div>
+            <div class="symbol">${info.symbol}</div>
+            <div class="timestamp">${new Date(info.timestamp).toLocaleTimeString()}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="price">$${parseFloat(info.price).toLocaleString()}</div>
+            <div class="change ${changeClass}">${changeText}</div>
+          </div>
+        `;
+        pricesEl.appendChild(card);
+      });
+    }
+
+    // Start connection
+    connect();
+  </script>
+</body>
+</html>

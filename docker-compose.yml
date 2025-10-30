@@ -1,0 +1,34 @@
+# services:
+#   app:
+#     build: .
+#     ports:
+#       - "8000:8000"
+#     depends_on:
+#       - redis
+#     restart: unless-stopped
+
+#   redis:
+#     image: redis:7-alpine
+#     ports:
+#       - "6379:6379"
+#     command: redis-server --save 60 1 --loglevel warning
+#     restart: unless-stopped
+
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - DOCKER_ENV=true
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    restart: unless-stopped

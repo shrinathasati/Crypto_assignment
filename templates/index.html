@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Crypto Prices</title>
+  <style>
+    :root {
+      --bg: #0f0f23;
+      --card: #1a1a2e;
+      --text: #e0e0e0;
+      --green: #00ff85;
+      --red: #ff6b6b;
+      --gold: #ffd700;
+      --blue: #00d4ff;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    h1 {
+      text-align: center;
+      color: var(--blue);
+      margin-bottom: 20px;
+      font-size: 2rem;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      max-width: 300px;
+      margin: 20px auto;
+      padding: 12px;
+      background: var(--blue);
+      color: white;
+      text-align: center;
+      border-radius: 8px;
+      font-weight: bold;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+    .btn:hover { background: #00a8cc; transform: scale(1.05); }
+    .status {
+      text-align: center;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    .connected { background: #1e4d2b; color: #a0f7a0; }
+    .disconnected { background: #5d1f1f; color: #f7a0a0; }
+    .prices { display: grid; gap: 12px; }
+    .price-card {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: 0.2s;
+    }
+    .price-card:hover { transform: translateY(-4px); }
+    .symbol { font-size: 1.5rem; font-weight: bold; color: var(--green); }
+    .price { font-size: 1.4rem; font-weight: bold; color: var(--gold); }
+    .change {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+    .positive { background: #1e4d2b; color: #a0f7a0; }
+    .negative { background: #5d1f1f; color: #f7a0a0; }
+    .timestamp { font-size: 0.8rem; color: #888; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Live Crypto Prices</h1>
+    <div id="status" class="status disconnected">Connecting...</div>
+
+    <a href="/price" target="_blank" class="btn">
+      Get Latest Price (REST API)
+    </a>
+
+    <div id="prices" class="prices"></div>
+  </div>
+
+  <script>
+    const ws = new WebSocket(`ws://${window.location.host}/ws`);
+    const statusEl = document.getElementById("status");
+    const pricesEl = document.getElementById("prices");
+
+    ws.onopen = () => {
+      statusEl.textContent = "Connected! Live updates...";
+      statusEl.className = "status connected";
+    };
+
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      updatePrices(data);
+    };
+
+    ws.onclose = () => {
+      statusEl.textContent = "Reconnecting...";
+      statusEl.className = "status disconnected";
+      setTimeout(() => location.reload(), 3000);
+    };
+
+    function updatePrices(prices) {
+      pricesEl.innerHTML = "";
+      Object.keys(prices).sort().forEach(sym => {
+        const p = prices[sym];
+        const change = parseFloat(p.change);
+        const card = document.createElement("div");
+        card.className = "price-card";
+        card.innerHTML = `
+          <div>
+            <div class="symbol">${p.symbol}</div>
+            <div class="timestamp">${new Date(p.timestamp).toLocaleString()}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="price">$${parseFloat(p.price).toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+            <div class="change ${change >= 0 ? 'positive' : 'negative'}">
+              ${change >= 0 ? '+' : ''}${change.toFixed(2)}%
+            </div>
+          </div>
+        `;
+        pricesEl.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>
