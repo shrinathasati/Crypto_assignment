@@ -1,14 +1,6 @@
-# fastapi==0.115.0
-# uvicorn[standard]==0.30.6
-# websockets==12.0
-# redis==5.0.8
-# fastapi-limiter==0.1.6
-# jinja2==3.1.4
-
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 websockets==12.0
 redis==5.0.8
 fastapi-limiter==0.1.6
 jinja2==3.1.4
-aiohttp==3.9.5
