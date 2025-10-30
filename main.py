@@ -317,12 +317,12 @@ async def lifespan(app: FastAPI):
         return "redis://localhost:6379"
 
     try:
-        redis_url = os.getenv("REDIS_URL") or "redis://localhost:6379"
+        redis_url = get_redis_url()
         redis = await aioredis.from_url(redis_url, decode_responses=True)
         await FastAPILimiter.init(redis)
         print(f"Rate limiter: Redis connected ({redis_url})")
     except Exception as e:
-        print(f"Rate limiter disabled: {e} (normal on Render free tier)")
+        print(f"Rate limiter disabled: {e}")
 
     yield
 
@@ -348,11 +348,13 @@ templates = Jinja2Templates(directory="templates")
 async def dashboard(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/price")
-async def get_price():
+from fastapi.responses import JSONResponse
+@app.get("/price", dependencies=[Depends(RateLimiter(times=20, seconds=60))])
+async def get_latest_prices(request: Request):
+    """Return latest crypto prices (rate-limited)."""
     if not latest_prices:
-        raise HTTPException(status_code=404, detail="No price data yet")
-    return latest_prices
+        raise HTTPException(status_code=404, detail="No price data yet.")
+    return JSONResponse(content=latest_prices)
 
 
 
