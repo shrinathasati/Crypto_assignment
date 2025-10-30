@@ -49,30 +49,28 @@
 #             await asyncio.sleep(backoff)
 #             backoff = min(backoff * 2, 60)
 
-
-# binance_listener.py
 import asyncio
 import aiohttp
 from datetime import datetime
 
-SYMBOLS = ["btcusdt", "ethusdt", "bnbusdt"]
+SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT"]
 latest_prices = {}
 
+async def fetch_symbol(session, symbol):
+    url = f"https://api.binance.com/api/v3/ticker/24hr?symbol={symbol}"
+    async with session.get(url, timeout=5) as resp:
+        data = await resp.json()
+        latest_prices[symbol] = {
+            "symbol": symbol,
+            "price": data["lastPrice"],
+            "change": data["priceChangePercent"],
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+
 async def fetch_binance_prices():
-    url = "https://api.binance.com/api/v3/ticker/24hr"
-    params = {"symbols": '["' + '","'.join(SYMBOLS) + '"]'}
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params, timeout=5) as resp:
-                data = await resp.json()
-                for item in data:
-                    symbol = item["symbol"].upper()
-                    latest_prices[symbol] = {
-                        "symbol": symbol,
-                        "price": item["lastPrice"],
-                        "change": item["priceChangePercent"],
-                        "timestamp": datetime.utcnow().isoformat() + "Z"
-                    }
+            await asyncio.gather(*[fetch_symbol(session, s) for s in SYMBOLS])
     except Exception as e:
         print(f"Binance REST fetch failed: {e}")
 
@@ -80,4 +78,6 @@ async def run_binance_listener():
     print("Starting Binance REST polling (Render-safe)...")
     while True:
         await fetch_binance_prices()
-        await asyncio.sleep(1)  # Update every 1 second
+        await asyncio.sleep(1)
+
+# asyncio.run(run_binance_listener())
